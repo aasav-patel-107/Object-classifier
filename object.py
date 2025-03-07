@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+# In[1]:
+
+
 import streamlit as st
 from PIL import Image
 import numpy as np
@@ -27,21 +30,21 @@ try:
     model = load_model("keras_model.h5", custom_objects={
         'DepthwiseConv2D': custom_depthwise_conv2d,
         'Conv2D': Conv2D
-    }, compile=False)
-    st.write("✅ Model loaded successfully!")
+    })
+    st.write("Model loaded successfully!")
 except Exception as e:
-    st.error(f"❌ Error loading model: {e}")
-    st.stop()
+    st.write(f"Error loading model: {e}")
 
-# Define labels (Make sure this matches the model output shape)
-labels = ["Background", "Watch", "Earbuds"]
+# Define labels
+labels = ["Background", "Harsh","Book"]
 
 # Preprocess image before passing to the model
 def preprocess_image(image):
-    if image.mode == 'RGBA':  # Convert RGBA to RGB
+    # Convert image to RGB if it has an alpha channel
+    if image.mode == 'RGBA':
         image = image.convert('RGB')
     
-    image = image.resize((224, 224))  # Resize image to expected input size
+    image = image.resize((224, 224))  # Resize image to the expected input size for the model
     image = np.array(image) / 255.0  # Normalize the image
     image = np.expand_dims(image, axis=0)  # Add batch dimension
     return image
@@ -50,33 +53,24 @@ def preprocess_image(image):
 def predict(image):
     image = preprocess_image(image)
     predictions = model.predict(image)
-
-    st.write("📊 Model Output:", predictions)  # Debugging output
-
-    if predictions.ndim == 1:  # If model outputs a flat array
-        predicted_class = np.argmax(predictions)
-    else:
-        predicted_class = np.argmax(predictions, axis=1)[0]
-
-    # Handle out-of-bounds index errors
-    if predicted_class >= len(labels):
-        return "Unknown", 0.0
-
-    return labels[predicted_class], float(predictions[0][predicted_class])
+    predicted_class = np.argmax(predictions, axis=1)[0]  # Get the index of the highest probability
+    return labels[predicted_class], predictions[0][predicted_class]  # Return label and confidence
 
 # Streamlit app layout
-st.title("🖼️ Object Classification App")
+st.title("Face Classification App")
 st.write("Upload an image for classification.")
 
 # File uploader widget
-uploaded_file = st.file_uploader("📤 Choose an image...", type=["jpg", "jpeg", "png"])
+uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
 
 # If an image is uploaded
 if uploaded_file is not None:
+    # Open image and display it
     uploaded_image = Image.open(uploaded_file)
-    st.image(uploaded_image, caption="🖼️ Uploaded Image", use_column_width=True)
+    st.image(uploaded_image, caption="Uploaded Image", use_column_width=True)
 
     # When user clicks the "Predict" button
-    if st.button("🔍 Predict"):
+    if st.button("Predict"):
         label, confidence = predict(uploaded_image)
-        st.write(f"🎯 **Prediction:** {label} (Confidence: {confidence:.2f})")
+        st.write(f"Prediction: {label} with confidence {confidence:.2f}")
+
